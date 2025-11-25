@@ -25,8 +25,12 @@ import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MavenWrapperDownloader {
+
+    private static final Logger LOGGER = Logger.getLogger(MavenWrapperDownloader.class.getName());
 
     /**
      * Default URL to download the maven-wrapper.jar from, if no 'downloadUrl' is provided.
@@ -53,62 +57,48 @@ public class MavenWrapperDownloader {
     private static final String PROPERTY_NAME_WRAPPER_URL = "wrapperUrl";
 
     public static void main(String args[]) {
-        System.out.println("- Downloader started");
+        LOGGER.info("Downloader started");
         File baseDirectory = new File(args[0]);
-        System.out.println("- Using base directory: " + baseDirectory.getAbsolutePath());
+        LOGGER.info("Using base directory: " + baseDirectory.getAbsolutePath());
 
         // If the maven-wrapper.properties exists, read it and check if it contains a custom
         // wrapperUrl parameter.
         File mavenWrapperPropertyFile = new File(baseDirectory, MAVEN_WRAPPER_PROPERTIES_PATH);
         String url = DEFAULT_DOWNLOAD_URL;
         if(mavenWrapperPropertyFile.exists()) {
-            FileInputStream mavenWrapperPropertyFileInputStream = null;
-            try {
-                mavenWrapperPropertyFileInputStream = new FileInputStream(mavenWrapperPropertyFile);
+            try (FileInputStream mavenWrapperPropertyFileInputStream = new FileInputStream(mavenWrapperPropertyFile)) {
                 Properties mavenWrapperProperties = new Properties();
                 mavenWrapperProperties.load(mavenWrapperPropertyFileInputStream);
                 url = mavenWrapperProperties.getProperty(PROPERTY_NAME_WRAPPER_URL, url);
             } catch (IOException e) {
-                System.out.println("- ERROR loading '" + MAVEN_WRAPPER_PROPERTIES_PATH + "'");
-            } finally {
-                try {
-                    if(mavenWrapperPropertyFileInputStream != null) {
-                        mavenWrapperPropertyFileInputStream.close();
-                    }
-                } catch (IOException e) {
-                    // Ignore ...
-                }
+                LOGGER.log(Level.SEVERE, "ERROR loading '" + MAVEN_WRAPPER_PROPERTIES_PATH + "'", e);
             }
         }
-        System.out.println("- Downloading from: : " + url);
+        LOGGER.info("Downloading from: " + url);
 
         File outputFile = new File(baseDirectory.getAbsolutePath(), MAVEN_WRAPPER_JAR_PATH);
         if(!outputFile.getParentFile().exists()) {
             if(!outputFile.getParentFile().mkdirs()) {
-                System.out.println(
-                        "- ERROR creating output direcrory '" + outputFile.getParentFile().getAbsolutePath() + "'");
+                LOGGER.severe("ERROR creating output directory '" + outputFile.getParentFile().getAbsolutePath() + "'");
             }
         }
-        System.out.println("- Downloading to: " + outputFile.getAbsolutePath());
+        LOGGER.info("Downloading to: " + outputFile.getAbsolutePath());
         try {
             downloadFileFromURL(url, outputFile);
-            System.out.println("Done");
+            LOGGER.info("Download completed successfully");
             System.exit(0);
         } catch (Throwable e) {
-            System.out.println("- Error downloading");
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error downloading maven wrapper", e);
             System.exit(1);
         }
     }
 
     private static void downloadFileFromURL(String urlString, File destination) throws Exception {
         URL website = new URL(urlString);
-        ReadableByteChannel rbc;
-        rbc = Channels.newChannel(website.openStream());
-        FileOutputStream fos = new FileOutputStream(destination);
-        fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-        fos.close();
-        rbc.close();
+        try (ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+             FileOutputStream fos = new FileOutputStream(destination)) {
+            fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+        }
     }
 
 }
